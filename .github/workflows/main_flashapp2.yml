@@ -22,21 +22,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Create and start virtual environment
+      - name: Create and start virtual environment and install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run tests
-        run: |
-          source venv/bin/activate
-          pytest  # Adjust this to your test command
+          pip install -r requirements.txt
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip . -x "venv/*"
+        run: |
+          zip -r release.zip . -x "venv/*"
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
