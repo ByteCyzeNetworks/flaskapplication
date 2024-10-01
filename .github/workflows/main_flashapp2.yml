@@ -29,19 +29,20 @@ jobs:
       
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          pytest  # Adjust this to your test command
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip -r release.zip . -x "venv/*"
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            release.zip
-            !venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,7 +51,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write
 
     steps:
       - name: Download artifact from build job
@@ -59,9 +60,8 @@ jobs:
           name: python-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
+        run: unzip release.zip || echo "Failed to unzip artifact"
 
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -69,10 +69,16 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_37C6E4AAF3114F508668C5CBA458BE43 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_919EF5C9E10C4A58985D66CE91154963 }}
 
+      - name: Set environment variables in Azure
+        run: |
+          az webapp config appsettings set --name flashapp2 --resource-group PasswordCheck --settings YOUR_ENV_VAR_NAME=your_value
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'flashapp2'
           slot-name: 'Production'
-          
+
+      - name: Check deployment logs
+        run: az webapp log tail --name flashapp2 --resource-group PasswordCheck
